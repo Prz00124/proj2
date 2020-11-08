@@ -38,13 +38,23 @@ public:
 
 class path_list {
 private:
-    int length = -1;
+    int length = -1, R[2]{ 0 }, r[2]{ 0 };
+    bool bad_R = false;
     path* llist[1024]{ NULL };
     
 public:
-    void new_path(int R_y, int R_x) {
+    path_list(bool bad, int A[2], int a[2]) {
+        R[0] = A[0], R[1] = A[1];
+        r[0] = a[0], r[1] = a[1];
+        bad_R = bad;
+    }
+
+    void new_path() {
         length++;
-        llist[length] = new path(R_y, R_x);
+        llist[length] = new path(R[0], R[1]);
+        if (bad_R) {
+            llist[length]->push(r);
+        }
     }
 
     void push_current(int B[2]) {
@@ -55,8 +65,9 @@ public:
 
 class flora {
 private:
-    int nraw = 0, ncolumn = 0, battary = 0, B[2]{ 0 }, R[2]{ 0 }, *** floor = NULL;
-    path_list path_set;
+    int nraw = 0, ncolumn = 0, battary = 0, R[2]{ 0 }, r[2]{ 0 }, *** floor = NULL;
+    bool bad_R = false;
+    path_list *path_set;
 public:
     void load_floor(char* path) {
         char line[1025]{ 0 }, * temp = NULL, * slices = NULL;
@@ -100,30 +111,31 @@ public:
                     floor[i][j][0] = 1,// here is bettary
                     floor[i][j][2] = 1;// have been here
 
-                    R[0] = i, R[1] = j, B[0] = i, B[1] = j;
-                    path_set.new_path(i, j);
+                    R[0] = i, R[1] = j; r[0] = i, r[1] = j;
 
                     if (R[0] == 0) {
-                        B[0]++;
-                        f(B[0], B[1])[1] = 1;
-                        path_set.push_current(B);
+                        bad_R = true;
+                        r[0]++;
+                        f(r[0], r[1])[1] = 1;
                     }
                     else if( R[0] == nraw - 1) {
-                        B[0]--;
-                        f(B[0], B[1])[1] = 1;
-                        path_set.push_current(B);
+                        bad_R = true;
+                        r[0]--;
+                        f(r[0], r[1])[1] = 1;
                     }
                     else if (R[1] == 0) {
-                        B[1]++;
-                        f(B[0], B[1])[1] = 1;
-                        path_set.push_current(B);
+                        bad_R = true;
+                        r[1]++;
+                        f(r[0], r[1])[1] = 1;
                     }
                     else if (R[1] == ncolumn - 1) {
-                        B[1]--;
-                        f(B[0], B[1])[1] = 1;
-                        path_set.push_current(B);
+                        bad_R = true;
+                        r[1]--;
+                        f(r[0], r[1])[1] = 1;
                     }
 
+                    path_set = new path_list(bad_R, R, r);
+                    path_set->new_path();
                 }
             }
         }
@@ -148,7 +160,7 @@ public:
 
     bool find_kernel(int a, int b, int contour) {
         int* there = f(a, b);
-        if (there[0]) {
+        if (there[0]>0) {
             return false;
         }
         else if (there[1]) {
@@ -202,8 +214,8 @@ public:
     }
     
     void contour_map() {
-        int update_list[2048][2]{ 0 }, update_index = 1, contour = f(B[0], B[1])[1] + 1;
-        update_list[0][0] = B[0], update_list[0][1] = B[1];
+        int update_list[2048][2]{ 0 }, update_index = 1, contour = f(r[0], r[1])[1] + 1;
+        update_list[0][0] = r[0], update_list[0][1] = r[1];
         while (update_index) {
             update_index = contour_iter(update_list, update_index, contour);
             contour++;
@@ -211,8 +223,72 @@ public:
 
     }
 
-    void bot_iter() {
+    /*
+    bool B_R(int a[2], int b[2]) {
+        if (a[0] == b[0] && a[1] == b[1]) return true;
+        else return false;
+    }*/
+    bool B_R(int b[2]) {
+        if (f(b[0], b[1])[0] == 1) return true;
+        else return false;
+    }
 
+    int rule1(int one[4][2], int two[4][2]) {
+        int farest = 0, far_ind = 0, pass_by = 0;// far_ind [one, two]
+
+        for (int i = 0; i < 4; i++) {
+            if (!f(one[i][0], one[i][1]) [0]==2) {// not wall
+                for (int j = 0; j < 2; j++) {//for neighbor two
+                    int index = (i + 3 + j) % 4, *point = f(two[index][0], two[index][1]);
+                    if (point[0] == 0) {// not wall and never been here
+                        if (point[1] > farest) {// if this norm two point is farest
+                            farest = point[1];
+                            far_ind = index + 4;
+                            pass_by = i;
+                        }
+                    }
+                }
+
+                if (!f(one[i][0], one[i][1])[0] == 0) {
+                    farest = one[i][1];
+                    far_ind = i;
+                }
+
+            }
+        }
+        if (farest) {
+            return(far_ind);
+        }
+        else return(-1);
+
+    }
+
+
+    int bot_kernel(int B[2]) {
+        int one[4][2] = { {B[0] - 1, B[1] }, {B[0], B[1] - 1}, {B[0] + 1, B[1]}, {B[0], B[1] + 1} },
+            two[4][2] = { {B[0] - 1, B[1] - 1}, {B[0] + 1, B[1] - 1}, {B[0] + 1, B[1] + 1}, {B[0] - 1, B[1] + 1} },
+            derection = rule1(one, two), D[2]{ 0 };
+
+        if (derection > -1) return derection;
+        
+
+    }
+
+    void bot_iter() {
+        int B[2]{ r[0], r[1] }, D;
+
+        D = bot_kernel(B);
+        int* temp = f(B[0], B[1]);
+        temp[0] --;
+
+        if (!temp[1]) {
+            path_set->push_current(B);
+        }
+        else {
+            path_set->new_path();
+            B[0] = r[0], B[1] = r[1];
+        }
+        
     }
 };
     
@@ -223,7 +299,6 @@ int main(int argc, char* argv[])
     cout << "Hello World!\n";
     double dur = 0;
     clock_t start, end;
-
 
     flora abc;
 
