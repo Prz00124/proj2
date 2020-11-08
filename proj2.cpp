@@ -34,6 +34,15 @@ public:
         tail = tail->next;
         length++;
     }
+
+    void clear() {
+        path_node *temp;
+        for (int i = 0; i < length; i++) {
+            temp = header;
+            header = header->next;
+            delete temp;
+        }
+    }
 };
 
 class path_list {
@@ -233,8 +242,10 @@ public:
         else return false;
     }
 
-    int rule1(int one[4][2], int two[4][2]) {
-        int farest = 0, far_ind = 0, pass_by = 0;// far_ind [one, two]
+    int rule1(int B[2]) {
+        int one[4][2] = { {B[0] - 1, B[1] }, {B[0], B[1] - 1}, {B[0] + 1, B[1]}, {B[0], B[1] + 1} },
+            two[4][2] = { {B[0] - 1, B[1] - 1}, {B[0] + 1, B[1] - 1}, {B[0] + 1, B[1] + 1}, {B[0] - 1, B[1] + 1} },
+            farest = 0, far_ind = 0, pass_by = 0;// far_ind [one, two]
 
         for (int i = 0; i < 4; i++) {
             if (!f(one[i][0], one[i][1]) [0]==2) {// not wall
@@ -253,42 +264,42 @@ public:
                     farest = one[i][1];
                     far_ind = i;
                 }
-
             }
         }
         if (farest) {
             return(far_ind);
         }
         else return(-1);
-
     }
 
-
-    int bot_kernel(int B[2]) {
-        int one[4][2] = { {B[0] - 1, B[1] }, {B[0], B[1] - 1}, {B[0] + 1, B[1]}, {B[0], B[1] + 1} },
-            two[4][2] = { {B[0] - 1, B[1] - 1}, {B[0] + 1, B[1] - 1}, {B[0] + 1, B[1] + 1}, {B[0] - 1, B[1] + 1} },
-            derection = rule1(one, two), D[2]{ 0 };
-
-        if (derection > -1) return derection;
-        
-
+    void D_to_V(int d, int result[2]) {
+        if (d == 0) result[0] --;
+        else if (d == 1) result[1] --;
+        else if (d == 2) result[0] ++;
+        else result[1] ++;
     }
 
     void bot_iter() {
-        int B[2]{ r[0], r[1] }, D;
+        int B[2]{ r[0], r[1] }, D[2], t = 0;
 
-        D = bot_kernel(B);
-        int* temp = f(B[0], B[1]);
-        temp[0] --;
+        t = rule1(B);
+        if (t>-1){
+            D_to_V(t, D);
 
-        if (!temp[1]) {
-            path_set->push_current(B);
+            int* temp = f(B[0], B[1]);
+            temp[0] --;
+
+            if (!temp[1]) {
+                path_set->push_current(B);
+            }
+            else {
+                path_set->new_path();
+                B[0] = r[0], B[1] = r[1];
+            }
         }
         else {
-            path_set->new_path();
-            B[0] = r[0], B[1] = r[1];
+            //find an alternative path to closest position that ever haven't been
         }
-        
     }
 };
     
