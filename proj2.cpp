@@ -242,17 +242,21 @@ public:
         else return false;
     }
 
-    int rule1(int B[2]) {
+    int rule1(int B[2]) {// return direction 0 1 2 3 
         int one[4][2] = { {B[0] - 1, B[1] }, {B[0], B[1] - 1}, {B[0] + 1, B[1]}, {B[0], B[1] + 1} },
             two[4][2] = { {B[0] - 1, B[1] - 1}, {B[0] + 1, B[1] - 1}, {B[0] + 1, B[1] + 1}, {B[0] - 1, B[1] + 1} },
             farest = 0, far_ind = 0, pass_by = 0;// far_ind [one, two]
 
+//one: _0_    two: 0_3
+//     1 3         _ _
+//     _2_         1_2
+
         for (int i = 0; i < 4; i++) {
-            if (!f(one[i][0], one[i][1]) [0]==2) {// not wall
-                for (int j = 0; j < 2; j++) {//for neighbor two
+            if (! (f(one[i][0], one[i][1])[0] ==2)) {//if this one not wall
+                for (int j = 0; j < 2; j++) {       // for neighbor two
                     int index = (i + 3 + j) % 4, *point = f(two[index][0], two[index][1]);
-                    if (point[0] == 0) {// not wall and never been here
-                        if (point[1] > farest) {// if this norm two point is farest
+                    if (point[0] == 0) {            // not wall and never been here
+                        if (point[1] > farest) {    // if this norm two point is farest
                             farest = point[1];
                             far_ind = index + 4;
                             pass_by = i;
@@ -280,11 +284,11 @@ public:
     }
 
     void bot_iter() {
-        int B[2]{ r[0], r[1] }, D[2], t = 0;
+        int B[2]{ r[0], r[1] }, V[2], t = 0;
 
         t = rule1(B);
         if (t>-1){
-            D_to_V(t, D);
+            D_to_V(t, V);
 
             int* temp = f(B[0], B[1]);
             temp[0] --;
