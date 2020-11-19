@@ -10,18 +10,21 @@ using namespace std;
 
 class path_node {
 private:
-    int position[2]{ 0 };
+    
 public:
     path_node* next = NULL;
+    int position[2]{ 0 };
 
     path_node(int y, int x) {
         position[0] = y, position[1] = x;
     }
+
+    
 };
 
 class path {
 private:
-    int length = 0;
+    long int length = 0;
     path_node* tail, * header;
 public:
     path(int R_y, int R_x) {
@@ -33,6 +36,14 @@ public:
         tail->next = new path_node(B[0], B[1]);
         tail = tail->next;
         length++;
+    }
+
+    void add(path_node *peice) {
+        tail->next = peice;
+        while (!(tail->next == NULL)) {
+            tail = tail->next;
+            length++;
+        }
     }
 
     void clear() {
@@ -69,14 +80,106 @@ public:
     void push_current(int B[2]) {
         llist[length]->push(B);
     }
+
+    void add_current(path_node* temp) {
+        llist[length]->add(temp);
+    }
 };
 
+class BOT {
+    int*** floor = NULL, B[2]{ 0 };
+
+public:
+    int battary = 0, boot = 0;
+
+    BOT(int*** fff, int* r, int batt) {
+        floor = fff;
+        B[0] = r[0], B[1] = r[1];
+        battary = batt,
+        boot = batt;
+    }
+
+    int* f(int a, int b) {
+        return(floor[a][b]);
+    }
+
+    path_node* rule1() {// return 1.not wall 2.farest 3.strange as direction 0 1 2 3 
+        //one: _0_    two: 0_3
+        //     1B3         _B_
+        //     _2_         1_2
+        int one[4][2] = { {B[0] - 1, B[1] }, {B[0], B[1] - 1}, {B[0] + 1, B[1]}, {B[0], B[1] + 1} },
+            two[4][2] = { {B[0] - 1, B[1] - 1}, {B[0] + 1, B[1] - 1}, {B[0] + 1, B[1] + 1}, {B[0] - 1, B[1] + 1} },
+            farest = 0, far_ind = 0, pass_by = 0;// far_ind [one{0,1,2,3}, two{0,1,2,3}]
+
+        for (int i = 0; i < 4; i++) {
+            int* neighbor = f(one[i][0], one[i][1]), index, *point;
+
+            if (!(neighbor[0] == 2)) {    //if this one not wall
+                if (!(neighbor[0] == 1) && neighbor[1] > farest) {//haven't been here
+                    farest = neighbor[1];
+                    far_ind = i;
+                }
+
+                for (int j = 0; j < 2; j++) {       // for neighbor two
+                    index = (i + 3 + j) % 4;
+                    point = f(two[index][0], two[index][1]);
+                    if (point[0] == 0) {            // not wall and never been here
+                        if (far_ind == index) {
+                            if (neighbor[0]) {
+                                pass_by = i;
+                            }
+                        }
+                        else if (point[1] > farest) {    // if this norm two point is farest
+                            farest = point[1];
+                            far_ind = index + 4;
+                            pass_by = i;
+                        }
+                        
+                    }
+                }
+            }
+        }
+
+        if (farest>3) {
+            path_node* temp = new path_node(one[pass_by][0], one[pass_by][1]);
+            far_ind -= 4;
+            temp->next = new path_node(two[far_ind][0], two[far_ind][1]);
+            B[0] = two[far_ind][0], B[1] = two[far_ind][1];
+            battary -= 2;
+            return(temp);
+        }
+        else if (farest >= 0) {
+            path_node* temp = new path_node(one[far_ind][0], one[far_ind][1]);
+            B[0] = one[far_ind][0], B[1] = one[far_ind][1];
+            battary --;
+            return(temp);
+        }
+        else return( NULL );
+    }
+
+    path_node* bot_deeper(path_node* temp) {
+        temp = rule1();
+        if (!(temp == NULL)) {
+            return(temp);
+        }
+        else {
+            //find an alternative path to closest position that ever haven't been
+        }
+    }
+
+    void reboot() {
+        battary = boot;
+    }
+
+};
 
 class flora {
 private:
     int nraw = 0, ncolumn = 0, battary = 0, R[2]{ 0 }, r[2]{ 0 }, *** floor = NULL;
     bool bad_R = false;
     path_list *path_set;
+    BOT* bot;
+
 public:
     void load_floor(char* path) {
         char line[1025]{ 0 }, * temp = NULL, * slices = NULL;
@@ -95,30 +198,24 @@ public:
 
         floor = new int** [nraw]; //floor[nraw][ncolumn][3]
         for (int i = 0; i < nraw; i++) {
-            floor[i] = new int* [ncolumn];
-            for (int j = 0; j < ncolumn; j++) {
-                floor[i][j] = new int[3]{ 0 };
-            }
-        }
-
-
-        for (int i = 0; i < nraw; i++) {
             input_file.getline(line, 1025);
             temp = strtok_s(line, " ", &slices);
-            //cout << temp << endl;
 
+            floor[i] = new int* [ncolumn];
             for (int j = 0; j < ncolumn; j++) {
-                floor[i][j] = new int[3]{ 0 };// [0]:wall [1]:distance [2]:have been here
-
+                //floor[i][j] = new int[3]{ 0 };
                 if (temp[j] == '1') {
-                    floor[i][j][0] = 2;// here is wall
+                    //floor[i][j][0] = 2;// here is wall
+                    floor[i][j] = new int[3]{ 2,0,0 };
                 }
                 else if (temp[j] == '0') {
-                    floor[i][j][0] = 0;// here is empty
+                    //floor[i][j][0] = 0;// here is empty
+                    floor[i][j] = new int[3]{ 0 };
                 }
                 else {
-                    floor[i][j][0] = 1,// here is bettary
-                    floor[i][j][2] = 1;// have been here
+                    //floor[i][j][0] = 1,// here is bettary
+                    //floor[i][j][2] = 1;// have been here
+                    floor[i][j] = new int[3]{ 1,0,1 };
 
                     R[0] = i, R[1] = j; r[0] = i, r[1] = j;
 
@@ -127,7 +224,7 @@ public:
                         r[0]++;
                         f(r[0], r[1])[1] = 1;
                     }
-                    else if( R[0] == nraw - 1) {
+                    else if (R[0] == nraw - 1) {
                         bad_R = true;
                         r[0]--;
                         f(r[0], r[1])[1] = 1;
@@ -142,14 +239,16 @@ public:
                         r[1]--;
                         f(r[0], r[1])[1] = 1;
                     }
-
-                    path_set = new path_list(bad_R, R, r);
-                    path_set->new_path();
                 }
             }
+
         }
 
         input_file.close();
+
+        path_set = new path_list(bad_R, R, r);
+        path_set->new_path();
+        bot = new BOT(floor, r, battary);
 
     }
 
@@ -232,79 +331,18 @@ public:
 
     }
 
-    /*
-    bool B_R(int a[2], int b[2]) {
-        if (a[0] == b[0] && a[1] == b[1]) return true;
-        else return false;
-    }*/
     bool B_R(int b[2]) {
         if (f(b[0], b[1])[0] == 1) return true;
         else return false;
     }
 
-    int rule1(int B[2]) {// return direction 0 1 2 3 
-        int one[4][2] = { {B[0] - 1, B[1] }, {B[0], B[1] - 1}, {B[0] + 1, B[1]}, {B[0], B[1] + 1} },
-            two[4][2] = { {B[0] - 1, B[1] - 1}, {B[0] + 1, B[1] - 1}, {B[0] + 1, B[1] + 1}, {B[0] - 1, B[1] + 1} },
-            farest = 0, far_ind = 0, pass_by = 0;// far_ind [one, two]
+    void step() {
+        path_node* temp = NULL;
+        temp = bot->bot_deeper(temp);
 
-//one: _0_    two: 0_3
-//     1 3         _ _
-//     _2_         1_2
 
-        for (int i = 0; i < 4; i++) {
-            if (! (f(one[i][0], one[i][1])[0] ==2)) {//if this one not wall
-                for (int j = 0; j < 2; j++) {       // for neighbor two
-                    int index = (i + 3 + j) % 4, *point = f(two[index][0], two[index][1]);
-                    if (point[0] == 0) {            // not wall and never been here
-                        if (point[1] > farest) {    // if this norm two point is farest
-                            farest = point[1];
-                            far_ind = index + 4;
-                            pass_by = i;
-                        }
-                    }
-                }
-
-                if (!f(one[i][0], one[i][1])[0] == 0) {
-                    farest = one[i][1];
-                    far_ind = i;
-                }
-            }
-        }
-        if (farest) {
-            return(far_ind);
-        }
-        else return(-1);
     }
 
-    void D_to_V(int d, int result[2]) {
-        if (d == 0) result[0] --;
-        else if (d == 1) result[1] --;
-        else if (d == 2) result[0] ++;
-        else result[1] ++;
-    }
-
-    void bot_iter() {
-        int B[2]{ r[0], r[1] }, V[2], t = 0;
-
-        t = rule1(B);
-        if (t>-1){
-            D_to_V(t, V);
-
-            int* temp = f(B[0], B[1]);
-            temp[0] --;
-
-            if (!temp[1]) {
-                path_set->push_current(B);
-            }
-            else {
-                path_set->new_path();
-                B[0] = r[0], B[1] = r[1];
-            }
-        }
-        else {
-            //find an alternative path to closest position that ever haven't been
-        }
-    }
 };
     
 
@@ -335,7 +373,7 @@ int main(int argc, char* argv[])
     dur = (double)(end - start);
     printf("Use Time:%f\n", (dur / CLOCKS_PER_SEC));
     
-    //abc.print_floor(1);
+    abc.print_floor(1);
 
 
 
