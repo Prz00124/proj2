@@ -1,6 +1,7 @@
 ﻿#include<iostream>
 #include<string>
 #include<fstream>
+
 //#include<stdlib.h>
 
 #include<time.h>
@@ -70,10 +71,14 @@ public:
     }
 
     void new_path() {
-        length++;
-        llist[length] = new path(R[0], R[1]);
         if (bad_R) {
+            length++;
+            llist[length] = new path(R[0], R[1]);
             llist[length]->push(r);
+        }
+        else {
+            length++;
+            llist[length] = new path(R[0], R[1]);
         }
     }
 
@@ -87,20 +92,43 @@ public:
 };
 
 class BOT {
-    int*** floor = NULL, B[2]{ 0 };
+    int*** floor = NULL, B[2]{ 0 }, charger[2]{ 0 }, boot = 0;
+    bool bad_R;
+    
 
 public:
-    int battary = 0, boot = 0;
+    int battary = 0;
 
-    BOT(int*** fff, int* r, int batt) {
+    BOT(int*** fff, int* r, int batt, bool kkk) {
         floor = fff;
         B[0] = r[0], B[1] = r[1];
-        battary = batt,
+        charger[0] = B[0], charger[1] = B[1];
+        battary = batt;
         boot = batt;
+        bad_R = kkk;
     }
 
     int* f(int a, int b) {
         return(floor[a][b]);
+    }
+
+    int* position() {
+        return(B);
+    }
+
+    void reboot() {
+        battary = boot;
+    }
+
+    bool powerful(int* target) {
+        cout << target[0] << " " << target[1] << endl;
+        if ((battary - f(B[0], B[1])[2]) > f(target[0], target[1])[1]) return true;
+        else return false;
+    }
+
+    bool power() {
+        if (battary > f(B[0], B[1])[1] + 2) return true;
+        else return false;
     }
 
     path_node* rule1() {// return 1.not wall 2.farest 3.strange as direction 0 1 2 3 
@@ -111,7 +139,9 @@ public:
             two[4][2] = { {B[0] - 1, B[1] - 1}, {B[0] + 1, B[1] - 1}, {B[0] + 1, B[1] + 1}, {B[0] - 1, B[1] + 1} },
             farest = 0, far_ind = 0, pass_by = 0;// far_ind [one{0,1,2,3}, two{0,1,2,3}]
 
+
         for (int i = 0; i < 4; i++) {
+            //cout << one[i][0] << " " << one[i][1] << endl;
             int* neighbor = f(one[i][0], one[i][1]), index, *point;
 
             if (!(neighbor[0] == 2)) {    //if this one not wall
@@ -140,47 +170,125 @@ public:
             }
         }
 
-        if (farest>3) {
+
+        if (far_ind>3) {
             path_node* temp = new path_node(one[pass_by][0], one[pass_by][1]);
+            f(one[pass_by][0], one[pass_by][1])[0] = 1;
             far_ind -= 4;
             temp->next = new path_node(two[far_ind][0], two[far_ind][1]);
             B[0] = two[far_ind][0], B[1] = two[far_ind][1];
+            f(two[far_ind][0], two[far_ind][1])[0] = 1;
             battary -= 2;
             return(temp);
         }
-        else if (farest >= 0) {
+        else if (far_ind >= 0) {
             path_node* temp = new path_node(one[far_ind][0], one[far_ind][1]);
             B[0] = one[far_ind][0], B[1] = one[far_ind][1];
+            f(one[far_ind][0], one[far_ind][1])[0] = 1;
             battary --;
             return(temp);
         }
         else return( NULL );
     }
 
-    path_node* bot_deeper(path_node* temp) {
-        temp = rule1();
-        if (!(temp == NULL)) {
-            return(temp);
+    path_node* go_deeper() {
+        //path_node* temp = NULL;
+        if (power()) {
+            return rule1();
         }
-        else {
-            //find an alternative path to closest position that ever haven't been
-        }
+        return NULL;
     }
 
-    void reboot() {
-        battary = boot;
+    path_node* ruleHome() {
+        if (B[0] == charger[0] && B[1] == charger[1]) {
+            return NULL;
+        }
+
+        int one[4][2] = { {B[0] - 1, B[1] }, {B[0], B[1] - 1}, {B[0] + 1, B[1]}, {B[0], B[1] + 1} },
+            * minima = f(B[0], B[1]), miniid = 0;
+
+        for (int i = 0; i < 4; i++) {
+            int* temp = f(one[i][0], one[i][1]);
+            if (!(temp[0] == 2)) {
+                if (temp[1] < minima[1]) {
+                    minima = temp;
+                    miniid = i;
+                }
+                else if (temp[1] == minima[1] && temp[0] < minima[0]) {
+                    minima = temp;
+                    miniid = i;
+                }
+            }
+        }
+
+        battary--;
+        B[0] = one[miniid][0], B[1] = one[miniid][1];
+        f(B[0], B[1])[0] = 1;
+        return(new path_node(one[miniid][0], one[miniid][1]));
     }
+
+    path_node* go_home() {
+        path_node* temp = ruleHome(), *head = temp, *tail = temp;
+        temp = ruleHome();
+        while (!(temp == NULL)) {
+            tail->next = temp;
+            tail = temp;
+            temp = ruleHome();
+        }
+        return(head);
+    }
+
+    path_node* ruleOther() {
+        if (f(B[0], B[1])[2] == -1) {
+            return NULL;
+        }
+
+        int one[4][2] = { {B[0] - 1, B[1] }, {B[0], B[1] - 1}, {B[0] + 1, B[1]}, {B[0], B[1] + 1} },
+            * minima = f(B[0], B[1]), miniid = 0;
+
+        for (int i = 0; i < 4; i++) {
+            int* temp = f(one[i][0], one[i][1]);
+            if (!(temp[0] == 2)) {
+                if (temp[2] < minima[2]) {
+                    minima = temp;
+                    miniid = i;
+                }
+            }
+        }
+
+        battary--;
+        B[0] = one[miniid][0], B[1] = one[miniid][1];
+        f(B[0], B[1])[0] = 1;
+        return(new path_node(one[miniid][0], one[miniid][1]));
+    }
+
+    path_node* go_another() {
+        path_node* temp = ruleOther(), * head = temp, * tail = temp;
+        temp = ruleOther();
+        while (!(temp == NULL)) {
+            tail->next = temp;
+            tail = temp;
+            temp = ruleOther();
+        }
+        return(head);
+    }
+
 
 };
 
 class flora {
 private:
-    int nraw = 0, ncolumn = 0, battary = 0, R[2]{ 0 }, r[2]{ 0 }, *** floor = NULL;
+    int nraw = 0, ncolumn = 0, battary = 0, R[2]{ 0 }, r[2]{ 0 };
     bool bad_R = false;
     path_list *path_set;
     BOT* bot;
 
+// floor[0]: 2 wall, 1: have been here.
+// floor[1]: contour map, 0 reboot, 1 if bad_R.
+// floor[2]: guide ground.
 public:
+    int*** floor = NULL;
+
     void load_floor(char* path) {
         char line[1025]{ 0 }, * temp = NULL, * slices = NULL;
 
@@ -196,63 +304,72 @@ public:
         battary = stoi(temp);
         cout << nraw << " " << ncolumn << " " << battary << endl;
 
-        floor = new int** [nraw]; //floor[nraw][ncolumn][3]
+        floor = new int** [nraw]; //floor[nraw][ncolumn][3], read map(initial floor[0]).
         for (int i = 0; i < nraw; i++) {
             input_file.getline(line, 1025);
             temp = strtok_s(line, " ", &slices);
 
             floor[i] = new int* [ncolumn];
             for (int j = 0; j < ncolumn; j++) {
-                //floor[i][j] = new int[3]{ 0 };
                 if (temp[j] == '1') {
-                    //floor[i][j][0] = 2;// here is wall
-                    floor[i][j] = new int[3]{ 2,0,0 };
+                    floor[i][j] = new int[3]{ 2,0,0 };// here is wall
                 }
                 else if (temp[j] == '0') {
-                    //floor[i][j][0] = 0;// here is empty
-                    floor[i][j] = new int[3]{ 0 };
+                    floor[i][j] = new int[3]{ 0 };// here is empty
                 }
-                else {
-                    //floor[i][j][0] = 1,// here is bettary
-                    //floor[i][j][2] = 1;// have been here
-                    floor[i][j] = new int[3]{ 1,0,1 };
+                else {//if read R
+                    floor[i][j] = new int[3]{ 1,0,0 };//[0] = 1: have been here
+                    R[0] = i, R[1] = j; r[0] = i, r[1] = j; //R the recharge place and r the initial point
 
-                    R[0] = i, R[1] = j; r[0] = i, r[1] = j;
-
+                    //wheather bad_R
                     if (R[0] == 0) {
                         bad_R = true;
                         r[0]++;
-                        f(r[0], r[1])[1] = 1;
                     }
                     else if (R[0] == nraw - 1) {
                         bad_R = true;
                         r[0]--;
-                        f(r[0], r[1])[1] = 1;
                     }
                     else if (R[1] == 0) {
                         bad_R = true;
                         r[1]++;
-                        f(r[0], r[1])[1] = 1;
                     }
                     else if (R[1] == ncolumn - 1) {
                         bad_R = true;
                         r[1]--;
-                        f(r[0], r[1])[1] = 1;
                     }
                 }
             }
-
         }
 
         input_file.close();
 
+        if (bad_R) {
+            f(R[0], R[1])[0] = 2;//bad R in the wall
+            f(r[0], r[1])[0] = 1,
+            f(r[0], r[1])[1] = 1;
+        }
+
         path_set = new path_list(bad_R, R, r);
         path_set->new_path();
-        bot = new BOT(floor, r, battary);
+
+        if (bad_R){
+            contour_map(r, f(r[0], r[1])[1]+1, 1);// build contour(initial floor [1])
+        }
+        else {
+            contour_map(r, f(r[0], r[1])[1], 1);// build contour(initial floor [1])
+        }
+        
+
+        bot = new BOT(floor, r, battary, bad_R);
 
     }
 
     void print_floor(int layer) {
+        cout << endl;
+        cout << endl;
+        cout <<"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<< endl;
+        cout << endl;
         cout << endl;
         for (int i = 0; i < nraw; i++) {
             for (int j = 0; j < ncolumn; j++) {
@@ -266,51 +383,51 @@ public:
         return(floor[a][b]);
     }
 
-    bool find_kernel(int a, int b, int contour) {
+    bool find_kernel(int a, int b, int contour, int layer) {
         int* there = f(a, b);
-        if (there[0]>0) {
+        if (there[0]==2) {// not wall
             return false;
         }
-        else if (there[1]) {
+        else if (there[layer]) {//has been contoured?
             return false;
         }
-        else {
-            there[1] = contour;
+        else {// no contour
+            there[layer] = contour;
             return true;
         }
     }
 
-    int expand(int(*here_list)[2], int here[2], int here_index, int contour) {
+    int expand(int(*here_list)[2], int here[2], int here_index, int contour, int layer) {
         int counter = 0;
-        if (find_kernel(here[0]+1, here[1], contour)) {
+        if (find_kernel(here[0]+1, here[1], contour, layer)) {
             here_list[here_index + counter][0] = here[0] + 1,
             here_list[here_index + counter][1] = here[1];
             counter++;
         }
-        if (find_kernel(here[0]-1, here[1], contour)) {
+        if (find_kernel(here[0]-1, here[1], contour, layer)) {
             here_list[here_index + counter][0] = here[0] - 1,
             here_list[here_index + counter][1] = here[1];
             counter++;
         }
-        if (find_kernel(here[0], here[1]+1, contour)) {
+        if (find_kernel(here[0], here[1]+1, contour, layer)) {
             here_list[here_index + counter][0] = here[0],
             here_list[here_index + counter][1] = here[1] + 1;
             counter++;
         }
-        if (find_kernel(here[0], here[1]-1, contour)) {
+        if (find_kernel(here[0], here[1]-1, contour, layer)) {
             here_list[here_index + counter][0] = here[0],
             here_list[here_index + counter][1] = here[1] - 1;
-            counter++;
+            counter++; 
         }
 
         return(counter);
     }
 
-    int contour_iter(int(*update_list)[2], int length, int contour) {
+    int contour_iter(int(*update_list)[2], int length, int contour, int layer) {
         int here_list[2048][2]{ 0 }, here_length = 0, update_index = 0;
 
-        while (update_index<length) {
-            here_length += expand(here_list, update_list[update_index], here_length, contour);
+        while (update_index < length) {
+            here_length += expand(here_list, update_list[update_index], here_length, contour, layer);
             update_index++;
         }
 
@@ -321,28 +438,139 @@ public:
         return here_length;
     }
     
-    void contour_map() {
-        int update_list[2048][2]{ 0 }, update_index = 1, contour = f(r[0], r[1])[1] + 1;
-        update_list[0][0] = r[0], update_list[0][1] = r[1];
+    void contour_map(int* orient, int contour, int layer) {
+        int update_list[2048][2]{ 0 }, update_index = 1;
+        update_list[0][0] = orient[0], update_list[0][1] = orient[1];
+        f(orient[0], orient[1])[layer] = contour;
         while (update_index) {
-            update_index = contour_iter(update_list, update_index, contour);
             contour++;
+            update_index = contour_iter(update_list, update_index, contour, layer);
+            
         }
-
     }
 
-    bool B_R(int b[2]) {
-        if (f(b[0], b[1])[0] == 1) return true;
+    /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
+    bool guide_kernel(int a, int b) {
+        int* there = f(a, b);
+        there[2] = 0;
+        if (there[1] == 1) return true;
         else return false;
     }
 
-    void step() {
-        path_node* temp = NULL;
-        temp = bot->bot_deeper(temp);
+    int expand_guide(int(*here_list)[2], int here[2], int here_index) {
+        int counter = 0, kkk = 0;
+        if (guide_kernel(here[0] + 1, here[1])) {
+            here_list[here_index + counter][0] = here[0] + 1,
+                here_list[here_index + counter][1] = here[1];
+            counter++;
+        }
+        else if (f(here[0] + 1, here[1])[0] == 0) kkk = (-(here[0] + 1) - here[1] * 1000);
 
+        if (guide_kernel(here[0] - 1, here[1])) {
+            here_list[here_index + counter][0] = here[0] - 1,
+                here_list[here_index + counter][1] = here[1];
+            counter++;
+        }
+        else if (f(here[0] - 1, here[1])[0] == 0) kkk = (-(here[0] - 1) - here[1] * 1000);
 
+        if (guide_kernel(here[0], here[1] + 1)) {
+            here_list[here_index + counter][0] = here[0],
+                here_list[here_index + counter][1] = here[1] + 1;
+            counter++;
+        }
+        else if (f(here[0], here[1] + 1)[0] == 0) kkk = (-here[0] - (here[1] + 1) * 1000);
+
+        if (guide_kernel(here[0], here[1] - 1)) {
+            here_list[here_index + counter][0] = here[0],
+                here_list[here_index + counter][1] = here[1] - 1;
+            counter++;
+        }
+        else if (f(here[0], here[1] - 1)[0] == 0) kkk = (-here[0] - (here[1] - 1) * 1000);
+
+        if (kkk) return kkk;
+        else return(counter);
     }
 
+    int guide_iter(int(*update_list)[2], int length) {
+        int here_list[2048][2]{ 0 }, here_length = 0, update_index = 0, temp = 0;
+
+        while (update_index < length) {
+            temp = expand_guide(here_list, update_list[update_index], here_length);
+
+            if (temp < 0) return temp;
+
+            here_length += temp;
+            update_index++;
+        }
+
+        for (int i = 0; i < here_length; i++) {
+            update_list[i][0] = here_list[i][0], update_list[i][1] = here_list[i][1];
+        }
+
+        return here_length;
+    }
+
+    int guide_who(int orient[2]) {
+        int update_list[2048][2]{ 0 }, update_index = 1;
+        update_list[0][0] = orient[0], update_list[0][1] = orient[1];
+        while (update_index) {
+            update_index = guide_iter(update_list, update_index);
+            if (update_index < 0) return(update_index);
+        }
+
+        return 0;
+    }
+
+    int guide(int target[2]) { // 0: have power to go other   1: whole map finished     2:should go home
+        int con = guide_who(target), temp[2] = {-con %1000, -con / 1000 };
+
+        if (temp[0] == 0 && temp[1] == 0) {
+            return(1); //whole map finished
+        }
+        else {
+            contour_map(temp, -1, 2);// reflash guide map
+            print_floor(1);
+            print_floor(2);
+            cin >> con;
+            if (bot->powerful(temp)) return -1;
+            return(0);
+        }
+        
+    }
+
+    bool step() {
+        path_node* temp = NULL;
+        //cout << bot->position()[0] << " " << bot->position()[1] << endl;
+        temp = bot->go_deeper();
+        if (temp == NULL) {
+            if (bot->power()) {
+                temp = bot->go_home();
+                path_set->add_current(temp);
+                bot->reboot();
+                path_set->new_path();
+            }
+            else {
+                int condition = guide(bot->position());
+                if (condition == 1) return false; // guide true --> the whole map done
+                else if (condition == -1) { //no enough power, so go home
+                    temp = bot->go_home();
+                    path_set->add_current(temp);
+                    bot->reboot();
+                    path_set->new_path();
+
+                }
+                else {// there is another strange point guide find and bot have power
+                    temp = bot->go_another();
+                    path_set->add_current(temp);
+                }
+            }
+        }
+        else {
+            path_set->add_current(temp);
+        }
+
+        return true;
+    }
 };
     
 
@@ -363,21 +591,20 @@ int main(int argc, char* argv[])
     dur = (double)(end - start);
     printf("Use Time:%f\n", (dur / CLOCKS_PER_SEC));
 
-
-    //abc.print_floor(0);
-    start = clock();
-
-    abc.contour_map();
-
-    end = clock();
-    dur = (double)(end - start);
-    printf("Use Time:%f\n", (dur / CLOCKS_PER_SEC));
     
+    /*
+    abc.print_floor(0);
     abc.print_floor(1);
-
-
-
-
+    abc.print_floor(2);
+    */
+    int counter = 0;
+    
+    while (abc.step()) {
+        counter++;
+        if ((counter % 100)==0) { 
+            //abc.print_floor(0);
+        }
+    }
 
 
 }
