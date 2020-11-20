@@ -647,32 +647,49 @@ public:
 int main(int argc, char* argv[])
 {
     //cout << "Hello World!\n";
-    //double dur = 0;
-    //clock_t start, end;
+    double dur = 0;
+    clock_t start, end;
+
+    /*----------------------------------------------------------------------------*/
+
+    start = clock();
 
     flora abc;
-
     abc.load_floor(argv[1]);
     //abc.print_floor(0);
-    //abc.print_floor(1);
-    //abc.print_floor(2);
-    
-    //int counter = 0;
+
+    end = clock();
+    dur = (double)(end - start);
+    printf("Initial Time:%f\n", (dur / CLOCKS_PER_SEC));
+
+    /*----------------------------------------------------------------------------*/
+
+    start = clock();
     
     while (abc.step()) {
         //counter++;
     }
+    end = clock();
+    dur = (double)(end - start);
+    printf("Use Time:%f\n", (dur / CLOCKS_PER_SEC));
 
+    /*----------------------------------------------------------------------------*/
 
-    //abc.print_floor(0);
+    start = clock();
 
     ofstream file;
-    string file_path = "output/1.path";
+    string file_path = "output/my.path";
     file.open(file_path);
     file << abc.summary() << endl;
     file.close();
-
     abc.layout(file_path);
+
+    end = clock();
+    dur = (double)(end - start);
+    printf("Layout Time:%f\n", (dur / CLOCKS_PER_SEC));
+
+    /*----------------------------------------------------------------------------*/
+
 }
 /*
 start = clock();
