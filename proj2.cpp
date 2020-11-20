@@ -28,7 +28,7 @@ private:
     
     path_node* tail, * header;
 public:
-    int length = 0;
+    int length = 1;
 
     path(int R_y, int R_x) {
         header = new path_node(R_y, R_x);
@@ -66,8 +66,17 @@ public:
         }
     }
 
-    void layout() {
+    void to_file(string file_name) {
+        ofstream file;
+        file.open(file_name, ios_base::app);
 
+        path_node *temp = header;
+        for (int i = 0; i < length; i++) {
+            file << temp->position[0] << " " << temp->position[1] << "\n";
+            temp = temp->next;
+        }
+
+        file.close();
     }
 
 };
@@ -86,13 +95,12 @@ public:
     }
 
     void new_path() {
+        length++;
         if (bad_R) {
-            length++;
             llist[length] = new path(R[0], R[1]);
             llist[length]->push(r);
         }
         else {
-            length++;
             llist[length] = new path(R[0], R[1]);
         }
     }
@@ -113,14 +121,22 @@ public:
         return sum;
     }
 
-    void info() {
-        cout << "length: " << length << " | " << "total steps: " << total() << endl;
+    int info() {
+        int temp = total();
+        cout << "length: " << length + 1 << " | " << "total steps: " << temp << endl;
+        return temp ;
     }
 
     void print() {
         for (int i = 0; i < length + 1; i++) {
             llist[i]->print();
             cout << "~~~~next one~~~~" << endl;
+        }
+    }
+
+    void layout(string output_path) {
+        for (int i = 0; i < length + 1; i++) {
+            llist[i]->to_file(output_path);
         }
     }
 
@@ -273,8 +289,7 @@ public:
             tail = temp;
             temp = ruleHome();
         }
-
-        tail->next = new path_node(B[0], B[1]);
+        //tail->next = new path_node(B[0], B[1]);
 
         return(head);
     }
@@ -386,9 +401,11 @@ public:
 
         if (bad_R) {
             f(R[0], R[1])[0] = 2;//bad R in the wall
-            f(r[0], r[1])[0] = 1,
-            f(r[0], r[1])[1] = 1;
+            f(r[0], r[1])[0] = 1;
+            //f(r[0], r[1])[1] = 1;
         }
+        f(r[0], r[1])[1] = 1;
+
 
         path_set = new path_list(bad_R, R, r);
         path_set->new_path();
@@ -617,50 +634,50 @@ public:
         return true;
     }
 
-    void summary() {
-        path_set->info();
+    int summary() {
         //path_set->print();
+        return path_set->info();
+    }
+
+    void layout(string file_name){
+        path_set->layout(file_name);
     }
 };
 
 int main(int argc, char* argv[])
 {
-    cout << "Hello World!\n";
-    double dur = 0;
-    clock_t start, end;
+    //cout << "Hello World!\n";
+    //double dur = 0;
+    //clock_t start, end;
 
     flora abc;
 
-    //part1
-    start = clock();
-
     abc.load_floor(argv[1]);
-
-    end = clock();
-    dur = (double)(end - start);
-    printf("Use Time:%f\n", (dur / CLOCKS_PER_SEC));
-
-
-
     //abc.print_floor(0);
     //abc.print_floor(1);
     //abc.print_floor(2);
     
-    int counter = 0;
+    //int counter = 0;
     
-    start = clock();
     while (abc.step()) {
-        counter++;
-        //if ((counter % 40)==0) { 
-            //abc.print_floor(0);
-            //abc.print_floor(1);
-        //}
+        //counter++;
     }
-    end = clock();
-    dur = (double)(end - start);
-    printf("Use Time:%f\n", (dur / CLOCKS_PER_SEC));
+
 
     //abc.print_floor(0);
-    abc.summary();
 
+    ofstream file;
+    string file_path = "output/1.path";
+    file.open(file_path);
+    file << abc.summary() << endl;
+    file.close();
+
+    abc.layout(file_path);
 }
+/*
+start = clock();
+
+end = clock();
+dur = (double)(end - start);
+printf("Use Time:%f\n", (dur / CLOCKS_PER_SEC));
+*/
