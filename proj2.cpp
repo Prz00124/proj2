@@ -25,9 +25,11 @@ public:
 
 class path {
 private:
-    long int length = 0;
+    
     path_node* tail, * header;
 public:
+    int length = 0;
+
     path(int R_y, int R_x) {
         header = new path_node(R_y, R_x);
         tail = header;
@@ -55,6 +57,19 @@ public:
             delete temp;
         }
     }
+
+    void print() {
+        path_node* temp = header;
+        for (int i = 0; i < length; i++) {
+            cout << temp->position[0] << " " << temp->position[1]<<endl;
+            temp = temp->next;
+        }
+    }
+
+    void layout() {
+
+    }
+
 };
 
 class path_list {
@@ -89,6 +104,26 @@ public:
     void add_current(path_node* temp) {
         llist[length]->add(temp);
     }
+
+    int total() {
+        int sum = 0;
+        for (int i = 0; i < length + 1; i++) {
+            sum += llist[i]->length;
+        }
+        return sum;
+    }
+
+    void info() {
+        cout << "length: " << length << " | " << "total steps: " << total() << endl;
+    }
+
+    void print() {
+        for (int i = 0; i < length + 1; i++) {
+            llist[i]->print();
+            cout << "~~~~next one~~~~" << endl;
+        }
+    }
+
 };
 
 class BOT {
@@ -120,13 +155,13 @@ public:
         battary = boot;
     }
 
-    bool powerful(int* target) {
-        cout << target[0] << " " << target[1] << endl;
+    bool powerful(int* target) {//enough returns true
+        //cout << target[0] << " " << target[1] << endl;
         if ((battary - f(B[0], B[1])[2]) > f(target[0], target[1])[1]) return true;
         else return false;
     }
 
-    bool power() {
+    bool power() {//enough returns true
         if (battary > f(B[0], B[1])[1] + 2) return true;
         else return false;
     }
@@ -145,7 +180,7 @@ public:
             int* neighbor = f(one[i][0], one[i][1]), index, *point;
 
             if (!(neighbor[0] == 2)) {    //if this one not wall
-                if (!(neighbor[0] == 1) && neighbor[1] > farest) {//haven't been here
+                if (neighbor[0] == 0 && neighbor[1] > farest) {//haven't been here
                     farest = neighbor[1];
                     far_ind = i;
                 }
@@ -155,7 +190,7 @@ public:
                     point = f(two[index][0], two[index][1]);
                     if (point[0] == 0) {            // not wall and never been here
                         if (far_ind == index) {
-                            if (neighbor[0]) {
+                            if (neighbor[0]==0) {
                                 pass_by = i;
                             }
                         }
@@ -170,25 +205,27 @@ public:
             }
         }
 
+        if (farest) {
+            if (far_ind > 3) {
+                path_node* temp = new path_node(one[pass_by][0], one[pass_by][1]);
+                f(one[pass_by][0], one[pass_by][1])[0] = 1;
+                far_ind -= 4;
+                temp->next = new path_node(two[far_ind][0], two[far_ind][1]);
+                B[0] = two[far_ind][0], B[1] = two[far_ind][1];
+                f(two[far_ind][0], two[far_ind][1])[0] = 1;
+                battary -= 2;
+                return(temp);
+            }
+            else if (far_ind >= 0) {
+                path_node* temp = new path_node(one[far_ind][0], one[far_ind][1]);
+                B[0] = one[far_ind][0], B[1] = one[far_ind][1];
+                f(one[far_ind][0], one[far_ind][1])[0] = 1;
+                battary--;
+                return(temp);
+            }
+        }
 
-        if (far_ind>3) {
-            path_node* temp = new path_node(one[pass_by][0], one[pass_by][1]);
-            f(one[pass_by][0], one[pass_by][1])[0] = 1;
-            far_ind -= 4;
-            temp->next = new path_node(two[far_ind][0], two[far_ind][1]);
-            B[0] = two[far_ind][0], B[1] = two[far_ind][1];
-            f(two[far_ind][0], two[far_ind][1])[0] = 1;
-            battary -= 2;
-            return(temp);
-        }
-        else if (far_ind >= 0) {
-            path_node* temp = new path_node(one[far_ind][0], one[far_ind][1]);
-            B[0] = one[far_ind][0], B[1] = one[far_ind][1];
-            f(one[far_ind][0], one[far_ind][1])[0] = 1;
-            battary --;
-            return(temp);
-        }
-        else return( NULL );
+        return( NULL );
     }
 
     path_node* go_deeper() {
@@ -203,6 +240,7 @@ public:
         if (B[0] == charger[0] && B[1] == charger[1]) {
             return NULL;
         }
+        f(B[0], B[1])[0] = 1;
 
         int one[4][2] = { {B[0] - 1, B[1] }, {B[0], B[1] - 1}, {B[0] + 1, B[1]}, {B[0], B[1] + 1} },
             * minima = f(B[0], B[1]), miniid = 0;
@@ -223,7 +261,7 @@ public:
 
         battary--;
         B[0] = one[miniid][0], B[1] = one[miniid][1];
-        f(B[0], B[1])[0] = 1;
+        
         return(new path_node(one[miniid][0], one[miniid][1]));
     }
 
@@ -235,11 +273,14 @@ public:
             tail = temp;
             temp = ruleHome();
         }
+
+        tail->next = new path_node(B[0], B[1]);
+
         return(head);
     }
 
     path_node* ruleOther() {
-        if (f(B[0], B[1])[2] == -1) {
+        if (f(B[0], B[1])[2] == 1) {
             return NULL;
         }
 
@@ -272,7 +313,6 @@ public:
         }
         return(head);
     }
-
 
 };
 
@@ -312,13 +352,13 @@ public:
             floor[i] = new int* [ncolumn];
             for (int j = 0; j < ncolumn; j++) {
                 if (temp[j] == '1') {
-                    floor[i][j] = new int[3]{ 2,0,0 };// here is wall
+                    floor[i][j] = new int[3]{ 2,0,1 };// here is wall
                 }
                 else if (temp[j] == '0') {
-                    floor[i][j] = new int[3]{ 0 };// here is empty
+                    floor[i][j] = new int[3]{ 0,0,1 };// here is empty
                 }
                 else {//if read R
-                    floor[i][j] = new int[3]{ 1,0,0 };//[0] = 1: have been here
+                    floor[i][j] = new int[3]{ 1,0,1 };//[0] = 1: have been here
                     R[0] = i, R[1] = j; r[0] = i, r[1] = j; //R the recharge place and r the initial point
 
                     //wheather bad_R
@@ -353,12 +393,13 @@ public:
         path_set = new path_list(bad_R, R, r);
         path_set->new_path();
 
-        if (bad_R){
+        /*if (bad_R){
             contour_map(r, f(r[0], r[1])[1]+1, 1);// build contour(initial floor [1])
         }
         else {
-            contour_map(r, f(r[0], r[1])[1], 1);// build contour(initial floor [1])
-        }
+            
+        }*/
+        contour_map(r, f(r[0], r[1])[1], 1);// build contour(initial floor [1])
         
 
         bot = new BOT(floor, r, battary, bad_R);
@@ -449,11 +490,12 @@ public:
         }
     }
 
-    /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-    bool guide_kernel(int a, int b) {
+    bool guide_kernel(int a, int b) { //find out if i have been here
         int* there = f(a, b);
-        there[2] = 0;
-        if (there[1] == 1) return true;
+        if (there[0] == 1&& there[2]>0) {
+            there[2] = 0;
+            return true; 
+        }
         else return false;
     }
 
@@ -511,10 +553,14 @@ public:
     }
 
     int guide_who(int orient[2]) {
+        //print_floor(0);
+        //print_floor(1);
         int update_list[2048][2]{ 0 }, update_index = 1;
         update_list[0][0] = orient[0], update_list[0][1] = orient[1];
         while (update_index) {
+            
             update_index = guide_iter(update_list, update_index);
+            //cout << update_index << " ";
             if (update_index < 0) return(update_index);
         }
 
@@ -528,11 +574,9 @@ public:
             return(1); //whole map finished
         }
         else {
-            contour_map(temp, -1, 2);// reflash guide map
-            print_floor(1);
-            print_floor(2);
-            cin >> con;
-            if (bot->powerful(temp)) return -1;
+            contour_map(temp, 1, 2);// reflash guide map
+            //print_floor(2);
+            if (!bot->powerful(temp)) return -1;
             return(0);
         }
         
@@ -540,18 +584,12 @@ public:
 
     bool step() {
         path_node* temp = NULL;
-        //cout << bot->position()[0] << " " << bot->position()[1] << endl;
+        //cout << bot->position()[0] << " " << bot->position()[1]<< " " << bot->battary << endl;
         temp = bot->go_deeper();
         if (temp == NULL) {
-            if (bot->power()) {
-                temp = bot->go_home();
-                path_set->add_current(temp);
-                bot->reboot();
-                path_set->new_path();
-            }
-            else {
+            if (bot->power()) { //has enough power but no neighbor to go
                 int condition = guide(bot->position());
-                if (condition == 1) return false; // guide true --> the whole map done
+                if (condition == 1) return false; // guide 1 --> the whole map done
                 else if (condition == -1) { //no enough power, so go home
                     temp = bot->go_home();
                     path_set->add_current(temp);
@@ -560,20 +598,30 @@ public:
 
                 }
                 else {// there is another strange point guide find and bot have power
+                    //cout << "go another" << endl;
                     temp = bot->go_another();
                     path_set->add_current(temp);
                 }
+            }
+            else {//has no power, should go home
+                //cout << "go home1" << endl;
+                temp = bot->go_home();
+                path_set->add_current(temp);
+                bot->reboot();
+                path_set->new_path();
             }
         }
         else {
             path_set->add_current(temp);
         }
-
         return true;
     }
-};
-    
 
+    void summary() {
+        path_set->info();
+        //path_set->print();
+    }
+};
 
 int main(int argc, char* argv[])
 {
@@ -583,6 +631,7 @@ int main(int argc, char* argv[])
 
     flora abc;
 
+    //part1
     start = clock();
 
     abc.load_floor(argv[1]);
@@ -591,20 +640,27 @@ int main(int argc, char* argv[])
     dur = (double)(end - start);
     printf("Use Time:%f\n", (dur / CLOCKS_PER_SEC));
 
+
+
+    //abc.print_floor(0);
+    //abc.print_floor(1);
+    //abc.print_floor(2);
     
-    /*
-    abc.print_floor(0);
-    abc.print_floor(1);
-    abc.print_floor(2);
-    */
     int counter = 0;
     
+    start = clock();
     while (abc.step()) {
         counter++;
-        if ((counter % 100)==0) { 
+        //if ((counter % 40)==0) { 
             //abc.print_floor(0);
-        }
+            //abc.print_floor(1);
+        //}
     }
+    end = clock();
+    dur = (double)(end - start);
+    printf("Use Time:%f\n", (dur / CLOCKS_PER_SEC));
 
+    //abc.print_floor(0);
+    abc.summary();
 
 }
