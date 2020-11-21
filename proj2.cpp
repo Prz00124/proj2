@@ -1,13 +1,54 @@
 ﻿#include<iostream>
 #include<string>
 #include<fstream>
-
-//#include<stdlib.h>
-
+#include<sstream>
+#include<thread> 
 #include<time.h>
 #include<iomanip>
 
+const int cores = 16;
+
 using namespace std;
+
+class label {
+public:
+    string lab[1000];
+    label() {
+        for (int i = 0; i < 1000; i++) {
+            lab[i] = to_string(i);
+        }
+    }
+
+    void print(int i) {
+        for (int j = 0; j < i; j++) {
+            cout << lab[j] << ' ';
+        }
+        cout << endl;
+    }
+};
+
+class diction {
+private:
+    short lengh = 0;
+public:
+    label* abc;
+
+    diction(int cor) {
+        abc = new label[cor];
+        lengh = cor;
+    }
+
+    void print(int top_n) {
+        for (int i = 0; i < lengh; i++) {
+            abc[i].print(top_n);
+        }
+    }
+
+    label *part(int n) {
+        return(abc + n);
+    }
+
+};
 
 class path_node {
 private:
@@ -19,13 +60,11 @@ public:
     path_node(int y, int x) {
         position[0] = y, position[1] = x;
     }
-
     
 };
 
 class path {
 private:
-    
     path_node* tail, * header;
 public:
     int length = 1;
@@ -66,24 +105,26 @@ public:
         }
     }
 
-    void to_file(string file_name) {
-        ofstream file;
-        file.open(file_name, ios_base::app);
-
+    void to_file(stringstream* BBB, string *lab) {
         path_node *temp = header;
+
         for (int i = 0; i < length; i++) {
-            file << temp->position[0] << " " << temp->position[1] << "\n";
+            int* temptemp = temp->position;
+            *BBB << lab[temptemp[0]] << ' ' << lab[temptemp[1]] << '\n';
             temp = temp->next;
         }
-
-        file.close();
     }
 
 };
 
+void read_job(path* i_th, stringstream* BBB, string *lab) {
+    i_th->to_file(BBB, lab);
+}
+
 class path_list {
 private:
-    int length = -1, R[2]{ 0 }, r[2]{ 0 };
+    int length = -1;
+    int R[2]{ 0 }, r[2]{ 0 };
     bool bad_R = false;
     path* llist[1024]{ NULL };
     
@@ -135,15 +176,52 @@ public:
     }
 
     void layout(string output_path) {
-        for (int i = 0; i < length + 1; i++) {
-            llist[i]->to_file(output_path);
-        }
-    }
+        ofstream file;
+        file.open(output_path, ios_base::app);
+        stringstream* BBB = new stringstream[length + 1];
 
+        /*mothod1*/
+        thread* workers = new thread[length + 1];
+        diction qqq(cores);
+
+        int counter = (length + 1)/ cores;
+        for (int j = 0; j < counter; j++) {
+            for (int i = j* cores; i < (j+1) * (cores); i++) {
+                workers[i] = thread(read_job, llist[i], BBB + i, qqq.abc[j%6].lab);
+            }
+
+            for (int i = j * cores; i < (j + 1) * (cores); i++) {
+                workers[i].join();
+            }
+        }
+
+        for (int i = counter * cores; i < length + 1; i++) {
+            workers[i] = thread(read_job, llist[i], BBB + i, qqq.abc[i % 6].lab);
+        }
+        for (int i = counter * cores; i < length + 1; i++) {
+            workers[i].join();
+        }
+        
+
+
+
+        /*mothod2
+        diction qqq(1);
+        for (int i = 0; i < length + 1; i++) {
+            read_job(llist[i], BBB+i, qqq.abc[0].lab);
+        }*/
+
+        for (int i = 0; i < length + 1; i++) {
+            file << (BBB+i)->rdbuf();
+        }
+
+        file.close();
+    }
 };
 
 class BOT {
-    int*** floor = NULL, B[2]{ 0 }, charger[2]{ 0 }, boot = 0;
+    int*** floor = NULL, boot = 0;
+    int B[2]{ 0 }, charger[2]{ 0 };
     bool bad_R;
     
 
@@ -159,7 +237,7 @@ public:
         bad_R = kkk;
     }
 
-    int* f(int a, int b) {
+    int* f(int  a, int  b) {
         return(floor[a][b]);
     }
 
@@ -187,8 +265,8 @@ public:
         //     1B3         _B_
         //     _2_         1_2
         int one[4][2] = { {B[0] - 1, B[1] }, {B[0], B[1] - 1}, {B[0] + 1, B[1]}, {B[0], B[1] + 1} },
-            two[4][2] = { {B[0] - 1, B[1] - 1}, {B[0] + 1, B[1] - 1}, {B[0] + 1, B[1] + 1}, {B[0] - 1, B[1] + 1} },
-            farest = 0, far_ind = 0, pass_by = 0;// far_ind [one{0,1,2,3}, two{0,1,2,3}]
+            two[4][2] = { {B[0] - 1, B[1] - 1}, {B[0] + 1, B[1] - 1}, {B[0] + 1, B[1] + 1}, {B[0] - 1, B[1] + 1} };
+        int farest = 0, far_ind = 0, pass_by = 0;// far_ind [one{0,1,2,3}, two{0,1,2,3}]
 
 
         for (int i = 0; i < 4; i++) {
@@ -258,8 +336,8 @@ public:
         }
         f(B[0], B[1])[0] = 1;
 
-        int one[4][2] = { {B[0] - 1, B[1] }, {B[0], B[1] - 1}, {B[0] + 1, B[1]}, {B[0], B[1] + 1} },
-            * minima = f(B[0], B[1]), miniid = 0;
+        int  one[4][2] = { {B[0] - 1, B[1] }, {B[0], B[1] - 1}, {B[0] + 1, B[1]}, {B[0], B[1] + 1} };
+        int * minima = f(B[0], B[1]), miniid = 0;
 
         for (int i = 0; i < 4; i++) {
             int* temp = f(one[i][0], one[i][1]);
@@ -278,7 +356,7 @@ public:
         battary--;
         B[0] = one[miniid][0], B[1] = one[miniid][1];
         
-        return(new path_node(one[miniid][0], one[miniid][1]));
+        return(new path_node(B[0], B[1]));
     }
 
     path_node* go_home() {
@@ -299,8 +377,8 @@ public:
             return NULL;
         }
 
-        int one[4][2] = { {B[0] - 1, B[1] }, {B[0], B[1] - 1}, {B[0] + 1, B[1]}, {B[0], B[1] + 1} },
-            * minima = f(B[0], B[1]), miniid = 0;
+        int  one[4][2] = { {B[0] - 1, B[1] }, {B[0], B[1] - 1}, {B[0] + 1, B[1]}, {B[0], B[1] + 1} };
+        int* minima = f(B[0], B[1]), miniid = 0;
 
         for (int i = 0; i < 4; i++) {
             int* temp = f(one[i][0], one[i][1]);
@@ -315,7 +393,7 @@ public:
         battary--;
         B[0] = one[miniid][0], B[1] = one[miniid][1];
         f(B[0], B[1])[0] = 1;
-        return(new path_node(one[miniid][0], one[miniid][1]));
+        return(new path_node(B[0], B[1]));
     }
 
     path_node* go_another() {
@@ -333,7 +411,8 @@ public:
 
 class flora {
 private:
-    int nraw = 0, ncolumn = 0, battary = 0, R[2]{ 0 }, r[2]{ 0 };
+    int nraw = 0, ncolumn = 0, R[2]{ 0 }, r[2]{ 0 };
+    int battary = 0;
     bool bad_R = false;
     path_list *path_set;
     BOT* bot;
@@ -482,7 +561,8 @@ public:
     }
 
     int contour_iter(int(*update_list)[2], int length, int contour, int layer) {
-        int here_list[2048][2]{ 0 }, here_length = 0, update_index = 0;
+        int here_list[2048][2]{ 0 }, here_length = 0;
+        int update_index = 0;
 
         while (update_index < length) {
             here_length += expand(here_list, update_list[update_index], here_length, contour, layer);
@@ -497,7 +577,8 @@ public:
     }
     
     void contour_map(int* orient, int contour, int layer) {
-        int update_list[2048][2]{ 0 }, update_index = 1;
+        int update_list[2048][2]{ 0 };
+        int update_index = 1;
         update_list[0][0] = orient[0], update_list[0][1] = orient[1];
         f(orient[0], orient[1])[layer] = contour;
         while (update_index) {
@@ -551,7 +632,8 @@ public:
     }
 
     int guide_iter(int(*update_list)[2], int length) {
-        int here_list[2048][2]{ 0 }, here_length = 0, update_index = 0, temp = 0;
+        int here_list[2048][2]{ 0 };
+        int here_length = 0, update_index = 0, temp = 0;
 
         while (update_index < length) {
             temp = expand_guide(here_list, update_list[update_index], here_length);
@@ -572,7 +654,8 @@ public:
     int guide_who(int orient[2]) {
         //print_floor(0);
         //print_floor(1);
-        int update_list[2048][2]{ 0 }, update_index = 1;
+        int update_list[2048][2]{ 0 };
+        int update_index = 1;
         update_list[0][0] = orient[0], update_list[0][1] = orient[1];
         while (update_index) {
             
@@ -585,7 +668,8 @@ public:
     }
 
     int guide(int target[2]) { // 0: have power to go other   1: whole map finished     2:should go home
-        int con = guide_who(target), temp[2] = {-con %1000, -con / 1000 };
+        int con = guide_who(target);
+        int temp[2] = { -con % 1000, -con / 1000 };
 
         if (temp[0] == 0 && temp[1] == 0) {
             return(1); //whole map finished
