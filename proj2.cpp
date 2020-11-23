@@ -6,7 +6,7 @@
 #include<time.h>
 #include<iomanip>
 
-const int cores = 16;
+const int cores = 6;
 
 using namespace std;
 
@@ -66,12 +66,14 @@ public:
 class path {
 private:
     path_node* tail, * header;
+    bool bad_R;
 public:
     int length = 1;
 
-    path(int R_y, int R_x) {
+    path(int R_y, int R_x, bool bad) {
         header = new path_node(R_y, R_x);
         tail = header;
+        bad_R = bad;
     }
 
     void push(int B[2]) {
@@ -107,7 +109,13 @@ public:
 
     void to_file(stringstream* BBB, string *lab) {
         path_node *temp = header;
-
+        /*
+        if (bad_R) for (int i = 0; i < length; i++) {
+            int* temptemp = temp->position;
+            *BBB << lab[temptemp[0]] << ' ' << lab[temptemp[1]] << '\n';
+            temp = temp->next;
+        }
+        else       */
         for (int i = 0; i < length; i++) {
             int* temptemp = temp->position;
             *BBB << lab[temptemp[0]] << ' ' << lab[temptemp[1]] << '\n';
@@ -126,7 +134,7 @@ private:
     int length = -1;
     int R[2]{ 0 }, r[2]{ 0 };
     bool bad_R = false;
-    path* llist[1024]{ NULL };
+    path* llist[4096]{ NULL };
     
 public:
     path_list(bool bad, int A[2], int a[2]) {
@@ -138,11 +146,11 @@ public:
     void new_path() {
         length++;
         if (bad_R) {
-            llist[length] = new path(R[0], R[1]);
+            llist[length] = new path(R[0], R[1], bad_R);
             llist[length]->push(r);
         }
         else {
-            llist[length] = new path(R[0], R[1]);
+            llist[length] = new path(R[0], R[1], bad_R);
         }
     }
 
@@ -159,6 +167,7 @@ public:
         for (int i = 0; i < length + 1; i++) {
             sum += llist[i]->length;
         }
+        if (bad_R) return sum;
         return sum;
     }
 
@@ -178,9 +187,10 @@ public:
     void layout(string output_path) {
         ofstream file;
         file.open(output_path, ios_base::app);
-        stringstream* BBB = new stringstream[length + 1];
+        
 
-        /*mothod1*/
+        /*mothod1
+        stringstream* BBB = new stringstream[length + 1];
         thread* workers = new thread[length + 1];
         diction qqq(cores);
 
@@ -200,19 +210,20 @@ public:
         }
         for (int i = counter * cores; i < length + 1; i++) {
             workers[i].join();
-        }
+        }*/
         
 
 
 
-        /*mothod2
+        /*mothod2*/
+        stringstream* BBB = new stringstream;
         diction qqq(1);
         for (int i = 0; i < length + 1; i++) {
-            read_job(llist[i], BBB+i, qqq.abc[0].lab);
-        }*/
+            read_job(llist[i], BBB, qqq.abc[0].lab);
+        }
 
         for (int i = 0; i < length + 1; i++) {
-            file << (BBB+i)->rdbuf();
+            file << BBB->rdbuf();
         }
 
         file.close();
@@ -232,9 +243,16 @@ public:
         floor = fff;
         B[0] = r[0], B[1] = r[1];
         charger[0] = B[0], charger[1] = B[1];
-        battary = batt;
-        boot = batt;
         bad_R = kkk;
+        if (bad_R) {
+            battary = batt - 1;
+            boot = batt - 1;
+        }
+        else {
+            battary = batt;
+            boot = batt;
+        }
+
     }
 
     int* f(int  a, int  b) {
@@ -331,9 +349,6 @@ public:
     }
 
     path_node* ruleHome() {
-        if (B[0] == charger[0] && B[1] == charger[1]) {
-            return NULL;
-        }
         f(B[0], B[1])[0] = 1;
 
         int  one[4][2] = { {B[0] - 1, B[1] }, {B[0], B[1] - 1}, {B[0] + 1, B[1]}, {B[0], B[1] + 1} };
@@ -356,7 +371,10 @@ public:
         battary--;
         B[0] = one[miniid][0], B[1] = one[miniid][1];
         
-        return(new path_node(B[0], B[1]));
+        if (B[0] == charger[0] && B[1] == charger[1]) {
+            return NULL;
+        }
+        else return(new path_node(B[0], B[1]));
     }
 
     path_node* go_home() {
@@ -367,8 +385,10 @@ public:
             tail = temp;
             temp = ruleHome();
         }
+        if (bad_R) {
+            tail->next = new path_node(B[0], B[1]);
+        }
         //tail->next = new path_node(B[0], B[1]);
-
         return(head);
     }
 
@@ -488,18 +508,15 @@ public:
 
         path_set = new path_list(bad_R, R, r);
         path_set->new_path();
-
-        /*if (bad_R){
-            contour_map(r, f(r[0], r[1])[1]+1, 1);// build contour(initial floor [1])
+        /*
+        if (bad_R) {
+            contour_map(r, f(r[0], r[1])[1], 1);
         }
-        else {
-            
-        }*/
+        else contour_map(r, f(r[0], r[1])[1], 1);// build contour(initial floor [1])
+        */
         contour_map(r, f(r[0], r[1])[1], 1);// build contour(initial floor [1])
-        
 
         bot = new BOT(floor, r, battary, bad_R);
-
     }
 
     void print_floor(int layer) {
