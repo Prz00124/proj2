@@ -331,9 +331,6 @@ public:
     }
 
     path_node* ruleHome() {
-        if (B[0] == charger[0] && B[1] == charger[1]) {
-            return NULL;
-        }
         f(B[0], B[1])[0] = 1;
 
         int  one[4][2] = { {B[0] - 1, B[1] }, {B[0], B[1] - 1}, {B[0] + 1, B[1]}, {B[0], B[1] + 1} };
@@ -355,7 +352,10 @@ public:
 
         battary--;
         B[0] = one[miniid][0], B[1] = one[miniid][1];
-        
+
+        if (B[0] == charger[0] && B[1] == charger[1]) {
+            return NULL;
+        }
         return(new path_node(B[0], B[1]));
     }
 
@@ -495,7 +495,11 @@ public:
         else {
             
         }*/
-        contour_map(r, f(r[0], r[1])[1], 1);// build contour(initial floor [1])
+        if (bad_R){
+            contour_map(r, f(r[0], r[1])[1], 2);// build contour(initial floor [1])
+        }
+        else contour_map(r, f(r[0], r[1])[1], 1);// build contour(initial floor [1])
+        
         
 
         bot = new BOT(floor, r, battary, bad_R);
