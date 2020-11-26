@@ -232,8 +232,8 @@ public:
         floor = fff;
         B[0] = r[0], B[1] = r[1];
         charger[0] = B[0], charger[1] = B[1];
-        battary = batt;
-        boot = batt;
+        battary = batt-1;
+        boot = batt-1;
         bad_R = kkk;
     }
 
@@ -367,6 +367,7 @@ public:
             tail = temp;
             temp = ruleHome();
         }
+        if (bad_R) tail->next = new path_node(B[0], B[1]);
         //tail->next = new path_node(B[0], B[1]);
 
         return(head);
@@ -495,10 +496,7 @@ public:
         else {
             
         }*/
-        if (bad_R){
-            contour_map(r, f(r[0], r[1])[1], 2);// build contour(initial floor [1])
-        }
-        else contour_map(r, f(r[0], r[1])[1], 1);// build contour(initial floor [1])
+        contour_map(r, f(r[0], r[1])[1], 1);// build contour(initial floor [1])
         
         
 
