@@ -6,7 +6,7 @@
 #include<time.h>
 #include<iomanip>
 
-const int cores = 16;
+const int cores = 1;
 
 using namespace std;
 
@@ -207,6 +207,7 @@ public:
             diction qqq(1);
             for (int i = 0; i < length + 1; i++) {
                 read_job(llist[i], BBB + i, qqq.abc[0].lab);
+            }
         }
 
 
@@ -761,7 +762,7 @@ int main(int argc, char* argv[])
     start = clock();
 
     ofstream file;
-    string file_path = "output/my.path";
+    string file_path = "final.path";
     file.open(file_path);
     file << abc.summary() << endl;
     file.close();
