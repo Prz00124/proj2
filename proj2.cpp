@@ -180,36 +180,35 @@ public:
         file.open(output_path, ios_base::app);
         stringstream* BBB = new stringstream[length + 1];
 
-        /*mothod1*/
-        thread* workers = new thread[length + 1];
-        diction qqq(cores);
 
-        int counter = (length + 1)/ cores;
-        for (int j = 0; j < counter; j++) {
-            for (int i = j* cores; i < (j+1) * (cores); i++) {
-                workers[i] = thread(read_job, llist[i], BBB + i, qqq.abc[j%6].lab);
+        if (cores > 1) {
+            thread* workers = new thread[length + 1];
+            diction qqq(cores);
+
+            int counter = (length + 1) / cores;
+            for (int j = 0; j < counter; j++) {
+                for (int i = j * cores; i < (j + 1) * (cores); i++) {
+                    workers[i] = thread(read_job, llist[i], BBB + i, qqq.abc[j % 6].lab);
+                }
+
+                for (int i = j * cores; i < (j + 1) * (cores); i++) {
+                    workers[i].join();
+                }
             }
 
-            for (int i = j * cores; i < (j + 1) * (cores); i++) {
+            for (int i = counter * cores; i < length + 1; i++) {
+                workers[i] = thread(read_job, llist[i], BBB + i, qqq.abc[i % 6].lab);
+            }
+            for (int i = counter * cores; i < length + 1; i++) {
                 workers[i].join();
             }
         }
-
-        for (int i = counter * cores; i < length + 1; i++) {
-            workers[i] = thread(read_job, llist[i], BBB + i, qqq.abc[i % 6].lab);
+        else {
+            diction qqq(1);
+            for (int i = 0; i < length + 1; i++) {
+                read_job(llist[i], BBB + i, qqq.abc[0].lab);
         }
-        for (int i = counter * cores; i < length + 1; i++) {
-            workers[i].join();
-        }
-        
 
-
-
-        /*mothod2
-        diction qqq(1);
-        for (int i = 0; i < length + 1; i++) {
-            read_job(llist[i], BBB+i, qqq.abc[0].lab);
-        }*/
 
         for (int i = 0; i < length + 1; i++) {
             file << (BBB+i)->rdbuf();
@@ -775,6 +774,7 @@ int main(int argc, char* argv[])
     /*----------------------------------------------------------------------------*/
 
 }
+
 /*
 start = clock();
 
